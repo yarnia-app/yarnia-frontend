@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { createApiClient } from "@/lib/api";
 import { redirect } from "next/navigation";
-import { signOut } from "../login/actions";
-import { Button } from "@/components/ui/button";
+import { StudioHeader } from "@/components/studio/header";
 
 export default async function StudioPage() {
     const supabase = await createClient();
@@ -14,16 +14,26 @@ export default async function StudioPage() {
         return redirect("/login");
     }
 
+    // Check if user has a profile
+    const apiClient = await createApiClient();
+    const profile = await apiClient.getMyProfile();
+
+    if (!profile) {
+        return redirect("/onboarding");
+    }
+
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-24">
-            <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-                <h1 className="text-4xl font-bold">Hello, {user.email}</h1>
-                <form action={signOut}>
-                    <Button variant="outline" type="submit">
-                        Log out
-                    </Button>
-                </form>
-            </div>
+        <div className="flex min-h-screen flex-col bg-background">
+            <StudioHeader user={user} profile={profile} title="Dashboard" />
+            <main className="flex-1 p-8">
+                <div className="mx-auto max-w-5xl">
+                    <h2 className="text-2xl font-bold tracking-tight">Welcome back!</h2>
+                    <p className="text-muted-foreground">
+                        This is your studio dashboard.
+                    </p>
+                </div>
+            </main>
         </div>
     );
 }
+

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createApiClient } from "@/lib/api";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -11,15 +12,22 @@ export async function GET(request: Request) {
         const supabase = await createClient();
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (!error) {
+            // Check if user has a profile
+            const apiClient = await createApiClient();
+            const profile = await apiClient.getMyProfile();
+
+            // Determine redirect path based on profile existence
+            const redirectPath = profile ? next : "/onboarding";
+
             const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
             const isLocalEnv = process.env.NODE_ENV === "development";
             if (isLocalEnv) {
                 // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-                return NextResponse.redirect(`${origin}${next}`);
+                return NextResponse.redirect(`${origin}${redirectPath}`);
             } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}${next}`);
+                return NextResponse.redirect(`https://${forwardedHost}${redirectPath}`);
             } else {
-                return NextResponse.redirect(`${origin}${next}`);
+                return NextResponse.redirect(`${origin}${redirectPath}`);
             }
         }
     }
@@ -27,3 +35,4 @@ export async function GET(request: Request) {
     // return the user to an error page with instructions
     return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }
+
